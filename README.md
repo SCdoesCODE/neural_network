@@ -6,7 +6,7 @@ Refreshing my memory in Neural Network land
 
 Initial work for this repo before turning into modules and utils functions
 
-### [neural_network_from_scratch.ipynb] (https://github.com/SCdoesCODE/neural_network/blob/main/notebooks/neural_network_from_scratch.ipynb)
+### neural_network_from_scratch.ipynb
 - an example of a 2-layer multilayer perceptron or neural network
 - each function only works with this particular type of network
 
