@@ -17,7 +17,7 @@ Initial work for this repo before turning into modules and utils functions
 
 ### src/utils.py
 
-Contains more updated and cleaner versions of functions developed in **neural_network_from_scratch_general.ipynb**. Contains functions needed to train and test a neural network such as e.g. the relu or sigmoid functions. Contains functions for the forward and backward passes used when training neural networks. 
+Contains more updated and cleaner versions of functions developed in **neural_network_from_scratch_general.ipynb.** Contains functions needed to train and test a neural network such as e.g. the relu or sigmoid functions. Contains functions for the forward and backward passes used when training neural networks. 
 
 ## Testing
 
