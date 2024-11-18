@@ -89,6 +89,18 @@ def softmax(vector: np.ndarray) -> np.ndarray:
     exp_values = np.exp(shift_vector)
     return exp_values / np.sum(exp_values)
 
+#binary cross entropy loss for a single data point
+def binary_cross_entropy_loss(y_true, y_predicted):
+    # Clip predicted value to avoid log(0)
+    very_small_number = 1e-7
+    y_predicted = np.clip(y_predicted, very_small_number, 1 - very_small_number)
+    
+    # Calculate binary cross-entropy for a single point
+    loss = - (y_true * np.log(y_predicted) + (1 - y_true) * np.log(1 - y_predicted))
+    
+    # Return scalar if inputs are arrays by taking the mean
+    return np.mean(loss) if isinstance(loss, np.ndarray) else loss
+
 def forward_pass(x, weights, biases, activation_fns, num_layers):
     #store linear transformations zs and activations
     zs = []
@@ -102,18 +114,6 @@ def forward_pass(x, weights, biases, activation_fns, num_layers):
         a = activation_fns[l-1](z)
         activations.append(a)
     return zs, activations
-
-#binary cross entropy loss for a single data point
-def binary_cross_entropy_loss(y_true, y_predicted):
-    # Clip predicted value to avoid log(0)
-    very_small_number = 1e-7
-    y_predicted = np.clip(y_predicted, very_small_number, 1 - very_small_number)
-    
-    # Calculate binary cross-entropy for a single point
-    loss = - (y_true * np.log(y_predicted) + (1 - y_true) * np.log(1 - y_predicted))
-    
-    # Return scalar if inputs are arrays by taking the mean
-    return np.mean(loss) if isinstance(loss, np.ndarray) else loss
 
 #this is also called the cost of a single training example 
 def output_layer_error(actual, predicted):
