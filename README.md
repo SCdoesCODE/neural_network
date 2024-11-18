@@ -1,4 +1,4 @@
-# neural_network
+# Neural Networks
 
 Refreshing my memory in Neural Network land
 
