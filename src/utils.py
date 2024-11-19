@@ -101,8 +101,9 @@ def binary_cross_entropy_loss(y_true, y_predicted):
     # Return scalar if inputs are arrays by taking the mean
     return np.mean(loss) if isinstance(loss, np.ndarray) else loss
 
-def forward_pass(x, weights, biases, activation_fns, num_layers):
+def forward_pass(x, weights, biases, activation_fns):
     #store linear transformations zs and activations
+    num_layers = len(weights)
     zs = []
     activations = []
 
@@ -110,8 +111,24 @@ def forward_pass(x, weights, biases, activation_fns, num_layers):
     a = x
     for l in range(1,num_layers+1):
         z = np.dot(weights[f"W{l}"], a) + biases[f"b{l}"]
+
+        # Assert shapes
+        assert z.shape == (weights[f"W{l}"].shape[0], a.shape[1]), (
+            f"Layer {l}: z shape mismatch. "
+            f"z is computed as W.dot(a_prev) + b, so it should be (neurons_in_current_layer, batch_size). "
+            f"Got {z.shape}, expected {(weights[f'W{l}'].shape[0], a.shape[1])}."
+        )
+
         zs.append(z)
-        a = activation_fns[l-1](z)
+        a = activation_fns[l-2](z)
+
+        # Assert shape of activation
+        assert a.shape == z.shape, (
+            f"Layer {l}: Activation shape mismatch. "
+            f"The activation function is applied element-wise, so it should return a matrix of the same shape as z. "
+            f"Got {a.shape}, expected {z.shape}."
+        )
+        
         activations.append(a)
     return zs, activations
 
@@ -120,24 +137,58 @@ def output_layer_error(actual, predicted):
     return predicted - actual
 
 def backward_pass(x, y, weights, biases, zs, activations, activation_fns, activation_derivative_fns):
-    n = len(y)  # Number of examples
+    n = y.size  # Number of examples
     num_layers = len(weights)  # Number of layers in the network
-    
+
     # Initialize dictionaries to store gradients
     grads = {}
     
     # Initialize the error at the output layer (delta for the last layer)
     output_error = activations[-1] - y  # Error in the output layer (aL - y)
-    
+
+    assert output_error.shape == activations[-1].shape, (
+        f"Output error shape mismatch. "
+        f"The output error is computed as activations[-1] - y, so it should match the shape of the output layer's activations "
+        f"(output_size, batch_size). Got {output_error.shape}, expected {activations[-1].shape}."
+    )
     # Loop backward through layers
-    for l in reversed(range(1, num_layers + 1)):
+    for l in reversed(range(1,num_layers+1)):
         # dWl and dbl for current layer
-        a_prev = activations[l - 1] if l > 1 else x  # Activation from the previous layer (or input layer)
-        z_curr = zs[l - 1]  # Current z (before applying activation)
+        a_prev = activations[l - 2] if l > 1 else x  # Activation from the previous layer (or input layer)
+
+        # Assert that a_prev has the correct shape
+        if l > 1:
+            # For layers after the first, a_prev should have shape (neurons_in_previous_layer, batch_size)
+            assert a_prev.shape == (weights[f"W{l}"].shape[1], x.shape[1]), f"Layer {l}: a_prev has incorrect shape. Expected {(weights[f'W{l}'].shape[1], x.shape[1])}, but got {a_prev.shape}"
+        else:
+            # For the first layer, a_prev (input x) should have shape (input_size, batch_size)
+            assert a_prev.shape == (x.shape[0], x.shape[1]), f"Layer {l}: a_prev (input) has incorrect shape. Expected {(x.shape[0], x.shape[1])}, but got {a_prev.shape}"
+
+        z_curr = zs[l-2]  # Current z (before applying activation)
+
+        """# Assert that z_curr shape matches the output layer's z shape
+        assert z_curr.shape == (weights[f"W{num_layers}"].shape[0], x.shape[1]), (
+            f"Layer {num_layers}: z_curr has incorrect shape. Expected "
+            f"({weights[f'W{num_layers}'].shape[0]}, {x.shape[1]}), but got {z_curr.shape}."
+        )"""
         
         # Compute gradients for weights and biases
         dWl = (1 / n) * np.dot(output_error, a_prev.T)
         dbl = (1 / n) * np.sum(output_error, axis=1, keepdims=True)
+
+        # Assert gradient shapes
+        assert dWl.shape == weights[f"W{l}"].shape, (
+            f"Layer {l}: dW shape mismatch. "
+            f"dW is computed as (1/batch_size) * output_error.dot(a_prev.T), so it should match the shape of weights['W{l}'] "
+            f"which is (neurons_in_current_layer, neurons_in_previous_layer). "
+            f"Got {dWl.shape}, expected {weights[f'W{l}'].shape}."
+        )
+        assert dbl.shape == biases[f"b{l}"].shape, (
+            f"Layer {l}: db shape mismatch. "
+            f"db is computed as (1/batch_size) * sum(output_error, axis=1), so it should match the shape of biases['b{l}'] "
+            f"which is (neurons_in_current_layer, 1). "
+            f"Got {dbl.shape}, expected {biases[f'b{l}'].shape}."
+        )
         
         # Store gradients in the dictionary
         grads[f"dW{l}"] = dWl
@@ -146,22 +197,55 @@ def backward_pass(x, y, weights, biases, zs, activations, activation_fns, activa
         if l > 1:
             # Propagate error backwards
             dz_prev = np.dot(weights[f"W{l}"].T, output_error) * activation_derivative_fns[l-1](z_curr)
-            output_error = dz_prev  # Update error for next layer
+
+            # Assert propagated error shape
+            assert dz_prev.shape == z_curr.shape, (
+                f"Layer {l}: dz_prev shape mismatch. "
+                f"dz_prev is computed as W.T.dot(output_error) * activation_derivative(z_curr), so it should have the same shape as z_curr, "
+                f"which is (neurons_in_current_layer, batch_size). "
+                f"Got {dz_prev.shape}, expected {z_curr.shape}."
+            )
+
+            output_error = dz_prev # Update error for next layer
     
     return grads
 
-def update_parameters(weights, biases, grads, learning_rate):
+def update_weights(weights, biases, grads, learning_rate):
     for i in range(1, len(weights)+1):
         weights[f"W{i}"] -= learning_rate * grads[f"dW{i}"]
         biases[f"b{i}"] -= learning_rate * grads[f"db{i}"]
 
     return weights, biases
 
+def update_parameters(weights, biases, grads, learning_rate):
+    for l in range(1, len(weights) + 1):
+        W_update = grads[f"dW{l}"]
+        b_update = grads[f"db{l}"]
+        
+        # Assert updates match weight and bias shapes
+        assert W_update.shape == weights[f"W{l}"].shape, (
+            f"Layer {l}: Weight update shape mismatch. "
+            f"The update for W{l} (learning_rate * dW) must match the shape of weights['W{l}'], "
+            f"which is (neurons_in_current_layer, neurons_in_previous_layer). "
+            f"Got {W_update.shape}, expected {weights[f'W{l}'].shape}."
+        )
+        assert b_update.shape == biases[f"b{l}"].shape, (
+            f"Layer {l}: Bias update shape mismatch. "
+            f"The update for b{l} (learning_rate * db) must match the shape of biases['b{l}'], "
+            f"which is (neurons_in_current_layer, 1). "
+            f"Got {b_update.shape}, expected {biases[f'b{l}'].shape}."
+        )
+
+        weights[f"W{l}"] -= learning_rate * W_update
+        biases[f"b{l}"] -= learning_rate * b_update
+
+    return weights, biases
+
 def train_neural_network(x, y, weights, biases, learning_rate, iterations, activation_fns, activation_derivative_fns):
-    num_layers = len(weights)
+
     for iteration in range(iterations):
         # Forward pass
-        zs, activations = forward_pass(x, weights, biases, activation_fns, num_layers)
+        zs, activations = forward_pass(x, weights, biases, activation_fns)
 
         a_final = activations[-1]
         
@@ -169,8 +253,8 @@ def train_neural_network(x, y, weights, biases, learning_rate, iterations, activ
         individual_losses = []
 
         #loop through all samples
-        for i in range(len(y)):
-            loss = binary_cross_entropy_loss(y[i],a_final[0][i])
+        for i, yi in np.ndenumerate(y):
+            loss = binary_cross_entropy_loss(yi,a_final[i])
             individual_losses.append(loss)
 
         # Calculate the average loss after each iteration
