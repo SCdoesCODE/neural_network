@@ -25,6 +25,8 @@ Contains more updated and cleaner versions of functions developed in **neural_ne
 
 Currently contains one integration test running through all functions in **src/utils.py** to train and test the neural network on the simple XOR problem (logical operator). The results are also compared against the results given by the MLPClassifier (Sklearn). 
 
+TODO - XOR is linearly separable so would not work on a single-layer perceptron and also needs a non-linear activation function. 
+
 ### unit_tests_modules.py
 
 Unit tests run against computations made on different calculators found online. Unit tests are run on functions such as the sigmoid function, the derivative of the sigmoid function, the relu function, the binary cross entropy loss function etc. 
