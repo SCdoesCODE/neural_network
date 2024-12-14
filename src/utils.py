@@ -120,7 +120,7 @@ def forward_pass(x, weights, biases, activation_fns):
         )
 
         zs.append(z)
-        a = activation_fns[l-2](z)
+        a = activation_fns[l-1](z)
 
         # Assert shape of activation
         assert a.shape == z.shape, (
