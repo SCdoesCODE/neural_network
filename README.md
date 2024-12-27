@@ -2,17 +2,6 @@
 
 Refreshing my memory in Neural Network land
 
-## Notebooks
-
-Initial work for this repo before turning into modules and utils functions
-
-### neural_network_from_scratch.ipynb
-- an example of a 2-layer multilayer perceptron or neural network
-- each function only works with this particular type of network
-
-### neural_network_from_scratch_general.ipynb
-- expands the neural_network_from_scratch.ipynb notebook to work for feedforward networks of any size
-
 ## Utils Functions
 
 ### src/utils.py
@@ -29,5 +18,13 @@ Currently contains one integration test running through all functions in **src/u
 
 Unit tests run against computations made on different calculators found online. Unit tests are run on functions such as the sigmoid function, the derivative of the sigmoid function, the relu function, the binary cross entropy loss function etc. 
 
+## Notebooks (may contain errors that have been fixed in utils.py)
 
+Initial work for this repo before turning into modules and utils functions
 
+### neural_network_from_scratch.ipynb
+- an example of a 2-layer multilayer perceptron or neural network
+- each function only works with this particular type of network
+
+### neural_network_from_scratch_general.ipynb
+- expands the neural_network_from_scratch.ipynb notebook to work for feedforward networks of any size
